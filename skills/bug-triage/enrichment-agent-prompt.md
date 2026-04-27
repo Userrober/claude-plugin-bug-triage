@@ -141,6 +141,7 @@ Build the HTML body using EXACTLY this skeleton (keep it scannable, not prose):
   <b>Cluster:</b> {CLUSTER_TAG}<br/>
   <b>Test owner:</b> {test_owner email or "—"} (ping for dedup confirmation)<br/>
   <b>Source bug:</b> <a href="{SOURCE_URL}">#{SOURCE_BUG_ID}</a> — {one-line title}</p>
+  <p><i>Effort legend: 🟢 &lt;1 day · 🟡 1–3 days · 🔴 needs design / cross-team</i></p>
 
   <h2>Failure signature</h2>
   <table border='1' cellpadding='6' cellspacing='0'>
