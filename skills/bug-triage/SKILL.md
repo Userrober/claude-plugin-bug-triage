@@ -91,22 +91,24 @@ After both answers in hand, proceed with execution. NEVER call `wit_create_work_
 3. Run the **mandatory 2-step intake** above
 4. Execute the chosen action; for "创建新 ADO bug" use the enrichment-agent-prompt.md pipeline (single bug, no sub-agent needed since it's just one)
 
-### Batch mode (N≥3)
+### Batch mode (N≥2) — ALWAYS parallel
+The moment you have 2 or more bugs, you MUST fan out parallel sub-agents. Do NOT process them sequentially in the main thread. Even N=2 — two bugs in parallel beats two bugs serially every time, and main-thread context stays clean.
+
 1. Bulk fetch all bugs (Phase 1 below)
 2. Cluster (Phase 2-3 below)
 3. Show cluster summary table
 4. Run the **mandatory 2-step intake** above
-5. If user picked "创建新 ADO bug": fan out parallel sub-agents (see "Parallel sub-agent fan-out" below)
-
-(N=2 is a judgment call — usually run batch mode if they look related.)
+5. If user picked "创建新 ADO bug": fan out parallel sub-agents (see "Parallel sub-agent fan-out" below) — one sub-agent per source bug, all running concurrently via `run_in_background=true`
 
 ### Parallel sub-agent fan-out (batch mode, "创建新 ADO bug" path)
 
-For N≥3 bugs in enrich mode:
-1. **Run 1-bug preview first.** Pick the first bug, spawn 1 sub-agent with the enrichment-agent-prompt.md prompt, wait for it to complete, show the user the new bug ID and ask them to verify the rendering.
-2. **Then fan out the remaining N-1 in parallel.** Spawn each as a separate `Agent` call with `run_in_background=true` in a SINGLE message (multi-tool-use block). They run concurrently, each in its own context window, each calling ADO MCP independently.
+For N≥2 bugs in enrich mode:
+1. **N=2**: spawn both sub-agents in a single message (two `Agent` tool calls in the same multi-tool-use block) with `run_in_background=true`. No preview needed at N=2 — just go.
+2. **N≥3**: run **1-bug preview first.** Pick the first bug, spawn 1 sub-agent (`run_in_background=false` so you can show the user the result), wait for it to complete, show the user the new bug ID and ask them to verify the rendering. Then fan out the remaining N-1 in parallel via background Agent calls.
 3. Each sub-agent returns a one-line JSON `{src_id, new_id, cluster_tag, action, effort, anchor, title}` — main thread stays small even at N=50.
 4. Total wall time = slowest sub-agent (~1-2 min), not N × per-bug time.
+
+**Why preview at N≥3 but not N=2**: at N=2 you can re-run the bad one cheaply if the prompt has a bug. At N=15 you waste 15× the cost discovering a prompt bug halfway through. The preview cost is amortized across the rest.
 
 This is the pattern that processed 15 ODSP-Web bugs in ~2 min wall time. Validated end-to-end.
 
