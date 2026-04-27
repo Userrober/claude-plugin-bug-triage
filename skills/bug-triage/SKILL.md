@@ -1,53 +1,94 @@
 ---
 name: bug-triage
 description: |
-  Batch triage ADO bugs for a feature owner — cluster bugs, enrich with code
-  anchors, identify quick wins, and generate a time-ordered action plan.
+  Triage ADO bugs for a feature owner — works for ANY bug-related ask, from
+  a single bug ("what should I do with #3013580") to a 50-bug post-bug-bash
+  batch. Always uses guided intake (asks the user how to handle the bug)
+  before any write. Never auto-writes to ADO.
 
-  TRIGGER when user:
-  - mentions "triage", "batch process bugs", "review my bugs", "post-bug-bash cleanup"
+  TRIGGER when the user mentions an ADO bug ID and any verb that implies
+  "decide what to do with it" — triage, handle, process, review, dedup,
+  close, fix, look at, work on, etc. The trigger is intentionally broad
+  because the value of this skill is the GUIDED INTAKE (asking the user
+  what they want to do) before any destructive action — not just clustering.
+
+  TRIGGER specifically when user:
+  - says "triage" / "handle" / "process" / "review" + a bug ID or query
+  - provides 1+ bug IDs and asks what to do with them
+  - mentions "batch process bugs", "review my bugs", "post-bug-bash cleanup"
   - asks "what should I work on this week" with bugs in scope
-  - provides 3+ bug IDs at once and wants analysis
   - asks to process all bugs assigned to a person / area / tag
   - says they're a feature owner facing too many bugs
+  - mentions dedup, close, resolve a specific bug
 
   SKIP for:
-  - single-bug analysis (just answer directly with ado MCP tools)
+  - read-only single-bug fetch with no action verb ("show me bug 3000924",
+    "what's bug 3000924 about") → use ado MCP directly, no skill needed
   - general ADO questions like "how do I create a work item"
-  - bug creation / writing a new bug (this skill only triages existing ones)
+  - bug creation from scratch (this skill only triages existing bugs)
   - work items that are not bugs (Tasks, User Stories, Features)
 
-  Examples that should trigger:
+  Examples that SHOULD trigger:
+  - "triage bug 3013580"
+  - "帮我处理 bug 3013580"
+  - "I want to dedup #3013580 against #3013053"
   - "帮我 triage Aharon 的 active bugs"
   - "我有 22 个 bug 不知道从哪开始"
   - "process these bugs: 3000924, 3000926, 3000928"
-  - "what should this feature owner work on?"
   - "post bug bash 怎么处理这一堆"
 
   Examples that should NOT trigger:
-  - "show me bug 3000924" → use ado MCP directly
-  - "create a new bug for X" → use ado MCP wit_create_work_item directly
-  - "what's the status of PR #123" → use ado MCP repo tools
+  - "show me bug 3000924" (just a read, no action)
+  - "what's the status of PR #123" (PR not bug)
+  - "create a new bug for X" (creation from scratch)
 
-  Default behavior: local markdown report only. Never writes to ADO unless user
-  explicitly passes --apply or asks to update ADO.
+  Default behavior: local markdown report only. NEVER writes to ADO unless
+  user explicitly confirms via guided intake.
 ---
 
 # Bug Triage Skill
 
-Batch-process N ADO bugs into a structured triage dashboard with code anchors, clusters, quick wins, and an actionable plan. Default behavior is **local-only** — never writes to ADO unless `--apply` is passed.
+Process ADO bugs for a feature owner — anywhere from 1 bug ("what do I do with this autobug?") to 50 ("post-bug-bash, help"). The unifying value is **guided intake**: this skill ALWAYS asks the user what to do with each bug before any write. No silent ADO modifications, ever.
 
 ## When to use
 
-- A feature owner has 5+ bugs to triage (post bug bash, sprint planning)
-- A bug list is too noisy to read top-to-bottom
+- A feature owner has 1+ bugs and needs to decide what to do (triage, dedup, close, fix-plan)
+- A bug list is too noisy to read top-to-bottom (5+ bugs)
 - An owner needs to know "what should I do this week vs next week"
+
+## Routing — pick the path based on bug count
+
+The skill has two modes; pick automatically based on input size:
+
+### Single-bug mode (N=1)
+The user said something like "triage bug 3013580". Don't run cluster analysis (you only have one bug). Instead:
+
+1. Fetch the bug (`wit_get_work_item` + comments if autobug-style)
+2. Show a 1-screen summary (title / state / severity / repro / stack trace / linked items)
+3. **Guided intake — ask what to do** via `AskUserQuestion`. Recommended options (4 max, recommend the most likely first based on the bug):
+   - **Dedup into existing bug** — if you found a likely duplicate, recommend this
+   - **Add a comment** — if user just wants to leave context, no state change
+   - **Update fields** (severity / assignee / state / repro) — for triage hygiene
+   - **Create enriched bug** — only if there's no existing target; rarely the right answer for 1 bug
+   - **Nothing — just show me** — read-only summary, exit
+4. Execute only after user confirms. NEVER write to ADO without an explicit "Yes, do it" answer.
+
+### Batch mode (N≥3)
+Run the full pipeline below.
+
+(N=2 is a judgment call — usually run batch mode if they look related, single-bug mode twice if they don't.)
 
 ## Inputs (any of)
 
 - Explicit bug IDs: `/bug-triage 3000924, 3000926, 3000928`
+- Single bug: `triage bug 3013580` or `帮我处理 bug 3013580`
 - ADO **shared** query GUID (NOT temp query): `/bug-triage query:abc-123-...`
 - Filter: `/bug-triage assignee:ahah@microsoft.com state:New`
+- Bug list pasted from ADO
+
+## Workflow (batch mode)
+
+Execute these phases **in order**. Use TaskCreate to track each phase as you go.
 - Bug list pasted from ADO
 
 ## Workflow
@@ -157,11 +198,13 @@ Sub-agents can't see each other, so two unrelated bugs both not-matching Cluster
 
 ## Anti-patterns (don't do these)
 
+- ❌ **Don't act on an ADO bug without guided intake.** Even if the user asked you to "triage" or "handle" or "dedup" a bug, ALWAYS pause and ask via `AskUserQuestion` what specific action they want — `dedup` / `comment` / `update` / `enrich` / `nothing`. The user's natural-language request is intent, not authorization.
 - ❌ Don't enrich bugs that are already high-quality with redundant info — focus on what's missing (usually code anchor)
-- ❌ Don't auto-write to ADO without `--apply` and explicit per-bug confirmation
+- ❌ Don't auto-write to ADO without explicit per-bug confirmation
 - ❌ Don't generate essay-style reports — owners want dashboards, not narratives
 - ❌ Don't cluster by ID order — cluster by semantic relationship
 - ❌ Don't make up code anchors when search returns nothing — say "no anchor found"
+- ❌ **Don't dump a polished analysis as a final answer when there's a follow-up action implied.** "Triage bug X" is a request that ends in an ASK, not a markdown report. Show summary briefly, then ASK.
 
 ## Reference
 
