@@ -1,0 +1,13 @@
+{
+  "name": "bug-triage-marketplace",
+  "owner": {
+    "name": "Userrober"
+  },
+  "plugins": [
+    {
+      "name": "bug-triage",
+      "source": "./",
+      "description": "Batch triage ADO bugs — cluster, enrich, prioritize"
+    }
+  ]
+}
