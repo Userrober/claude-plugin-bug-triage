@@ -58,42 +58,57 @@ Process ADO bugs for a feature owner — anywhere from 1 bug ("what do I do with
 
 ## Routing — pick the path based on bug count
 
-The skill has two modes; pick automatically based on input size:
+The skill has two modes; pick automatically based on input size. **Both modes ALWAYS run a 2-step intake before any write — no exceptions, even if the user said "enrich" / "fix" / "dedup" directly.**
+
+### Mandatory 2-step intake (run this for EVERY invocation)
+
+After fetching the bug(s) and showing a short summary, you MUST call `AskUserQuestion` twice in sequence:
+
+**Question 1 — Output destination (always ask, even if user said "enrich"):**
+```
+options:
+  1. 本地报告 (local markdown only) — 默认推荐，不动 ADO
+  2. 创建新 ADO bug (enriched) — 写一个/多个新 bug，源 bug 不变
+  3. 直接更新源 bug 字段 — 改 severity/state/assignee/repro，不创建新 bug
+  4. 啥也不做，只看摘要 — exit
+```
+
+**Question 2 — ONLY if user picked "创建新 ADO bug" or "直接更新源 bug" in Q1, ask:**
+```
+"Assign 给哪个邮箱？"
+options:
+  1. {推荐 default — last used assignee, or current user from MCP whoami}
+  2. 其他邮箱 (我下一条告诉你)
+```
+
+DO NOT auto-default the assignee from context. ALWAYS ask. Even if user already gave assignee earlier in conversation, re-confirm — bugs land in the wrong inbox otherwise.
+
+After both answers in hand, proceed with execution. NEVER call `wit_create_work_item` or `wit_update_work_item` before both questions are answered.
 
 ### Single-bug mode (N=1)
-The user said something like "triage bug 3013580". Don't run cluster analysis (you only have one bug). Instead:
-
 1. Fetch the bug (`wit_get_work_item` + comments if autobug-style)
 2. Show a 1-screen summary (title / state / severity / repro / stack trace / linked items)
-3. **Guided intake — ask what to do** via `AskUserQuestion`. Recommended options (4 max, recommend the most likely first based on the bug):
-   - **Dedup into existing bug** — if you found a likely duplicate, recommend this
-   - **Add a comment** — if user just wants to leave context, no state change
-   - **Update fields** (severity / assignee / state / repro) — for triage hygiene
-   - **Create enriched bug** — only if there's no existing target; rarely the right answer for 1 bug
-   - **Nothing — just show me** — read-only summary, exit
-4. Execute only after user confirms. NEVER write to ADO without an explicit "Yes, do it" answer.
+3. Run the **mandatory 2-step intake** above
+4. Execute the chosen action; for "创建新 ADO bug" use the enrichment-agent-prompt.md pipeline (single bug, no sub-agent needed since it's just one)
 
 ### Batch mode (N≥3)
-Run the full pipeline below.
+1. Bulk fetch all bugs (Phase 1 below)
+2. Cluster (Phase 2-3 below)
+3. Show cluster summary table
+4. Run the **mandatory 2-step intake** above
+5. If user picked "创建新 ADO bug": fan out parallel sub-agents (see "Parallel sub-agent fan-out" below)
 
-(N=2 is a judgment call — usually run batch mode if they look related, single-bug mode twice if they don't.)
+(N=2 is a judgment call — usually run batch mode if they look related.)
 
-## Inputs (any of)
+### Parallel sub-agent fan-out (batch mode, "创建新 ADO bug" path)
 
-- Explicit bug IDs: `/bug-triage 3000924, 3000926, 3000928`
-- Single bug: `triage bug 3013580` or `帮我处理 bug 3013580`
-- ADO **shared** query GUID (NOT temp query): `/bug-triage query:abc-123-...`
-- Filter: `/bug-triage assignee:ahah@microsoft.com state:New`
-- Bug list pasted from ADO
+For N≥3 bugs in enrich mode:
+1. **Run 1-bug preview first.** Pick the first bug, spawn 1 sub-agent with the enrichment-agent-prompt.md prompt, wait for it to complete, show the user the new bug ID and ask them to verify the rendering.
+2. **Then fan out the remaining N-1 in parallel.** Spawn each as a separate `Agent` call with `run_in_background=true` in a SINGLE message (multi-tool-use block). They run concurrently, each in its own context window, each calling ADO MCP independently.
+3. Each sub-agent returns a one-line JSON `{src_id, new_id, cluster_tag, action, effort, anchor, title}` — main thread stays small even at N=50.
+4. Total wall time = slowest sub-agent (~1-2 min), not N × per-bug time.
 
-## Workflow (batch mode)
-
-Execute these phases **in order**. Use TaskCreate to track each phase as you go.
-- Bug list pasted from ADO
-
-## Workflow
-
-Execute these phases **in order**. Use TaskCreate to track each phase as you go.
+This is the pattern that processed 15 ODSP-Web bugs in ~2 min wall time. Validated end-to-end.
 
 ### Phase 1 — Bulk Fetch (parallel)
 
@@ -170,12 +185,13 @@ Never write to ADO. Show enrichment as suggestions in the dashboard.
 ### `--apply` flag — ADO write modes
 Multiple output modes available — see [ado-output.md](./ado-output.md) for full recipes:
 
-- **comment mode** — add triage comment to each source bug (markdown supported in comments)
 - **meta-bug mode** — create one new bug summarizing the cluster, link sources as `Related`
 - **enrich-1to1 mode** — N source bugs → N enriched bugs, one sub-agent per source (see [enrichment-agent-prompt.md](./enrichment-agent-prompt.md) — this is the highest-value mode and the prompt is the asset)
-- **both** — meta bug + back-reference comments on sources
+- **update-source mode** — modify the source bug in place (severity, state, assignee, repro)
 
-Always confirm mode + assignee + project with user before writing.
+(Comment mode was removed in v0.3.0 — owners ignore comments on autobugs; create a new tracked bug or update the source instead.)
+
+Always run the **mandatory 2-step intake** above before writing.
 
 **For batches ≥5 in `enrich-1to1` mode**: spawn one sub-agent per source bug using the prompt in `enrichment-agent-prompt.md`. Sub-agent does the full pipeline (extract → code anchor → dedup signal → classify → write HTML → create bug → verify) and returns a single-line JSON. Main thread stays small even at N=50. Run a 1-bug preview first, get user OK, then fan out.
 

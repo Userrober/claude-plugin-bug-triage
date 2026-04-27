@@ -9,12 +9,13 @@ How to write triage results back to ADO. Loaded only when user invokes `--apply`
 | Mode | What it does | When to use |
 |---|---|---|
 | **local** (default) | Markdown file in `triage-reports/` only | Default — never auto-write to ADO |
-| **comment** | Add comment to each source bug | User wants enrichment attached to original bugs |
 | **meta-bug** | Create 1 new bug summarizing the cluster, link sources as `Related` | User wants a single trackable artifact for the whole batch |
 | **enrich-1to1** | N source bugs → N enriched bugs, one sub-agent per source | User wants individually actionable enriched bugs (see [enrichment-agent-prompt.md](./enrichment-agent-prompt.md)) |
-| **both** | meta-bug + comment back-references | Full bidirectional traceability |
+| **update-source** | Modify the source bug fields in place (severity / state / assignee / repro) | Triage hygiene — fix wrong assignee, downgrade severity |
 
-Always confirm mode with user before writing. Default to `local` if ambiguous.
+**Removed in v0.3.0**: `comment` mode and `both` mode. Reason: owners ignore comments on autobug-style bugs (they're already drowning in autobug noise). Either create a new tracked artifact (`enrich-1to1` / `meta-bug`) or update the source in place.
+
+Always run the **mandatory 2-step intake** (defined in SKILL.md Routing section) before writing.
 
 ---
 
@@ -38,22 +39,23 @@ Each question MUST present a **recommended default** as the first option, marked
 
 **Don't over-ask** — if user already said "create meta bug assigned to me in ODSP-Web", you have everything; just confirm assignee email if not visible from MCP context, then proceed.
 
-**Sample question set** (use `AskUserQuestion`, always recommended-first):
+**Sample question set** (use `AskUserQuestion`, always recommended-first; v0.3.0 — 2-step intake, no comment option):
 ```
-Q1: 你想输出的 ADO 内容是什么形式？
-    - 1 个 meta bug 总结 triage 结果（推荐 — 最常用，单一 trackable artifact）
-    - 在原 N 个 bug 加 comments
-    - 两个都做（meta bug + back-reference comments）
+Q1: 你想输出到哪里？
+    - 本地 markdown 报告（推荐 — 默认，不动 ADO）
+    - 创建新 ADO bug (enriched, 1:1 或 meta) — 写新 bug，源 bug 不变
+    - 直接更新源 bug 字段 — 改 severity/state/assignee/repro
+    - 啥也不做，只看摘要 — exit
 
-Q2: Assign to 哪个账号？
-    - 你的当前 ADO 账号 {auto-detected-email}（推荐）
-    - 别的 email（你下一条告诉我）
+Q2 (only if Q1 is "创建新 ADO bug" or "更新源 bug"): Assign 给哪个邮箱？
+    - {last-used-or-current-user-email}（推荐）
+    - 其他 email（下一条告诉我）
 
-Q3: 在哪个 ADO 项目创建？
-    - {source-project}（推荐 — 和原 bug 同项目，跨项目链接会丢上下文）
-    - 其他项目
+Q3 (only if multi-bug AND Q1 is "创建新 ADO bug"): 1:1 enrich 还是 meta-bug？
+    - 1:1 enrich (N 个新 bug) — 推荐，每个源 bug 独立可 act
+    - meta-bug (1 个新 bug) — 适合 cluster 已收敛、想要单一 tracker
 
-Q4: Severity / Priority？
+Q4 (only if writing to ADO): Severity / Priority？
     - Sev {max-of-sources} / Pri {derived}（推荐 — 跟随源 bug 最高等级）
     - 我手动指定
 ```
@@ -162,12 +164,9 @@ When in doubt, **write to BOTH fields** — redundant but guaranteed visible.
 
 ---
 
-## comment mode — recipe
+## comment mode — REMOVED in v0.3.0
 
-1. Confirm per-bug which to apply (default: no)
-2. Use `wit_add_work_item_comment` with `format: "Markdown"` (comments DO support markdown — different from description fields!)
-3. Lead each comment with `## Triage Note (added by AI analysis)` so it's clearly AI-generated
-4. **Never** modify `System.Description` or `Microsoft.VSTS.TCM.ReproSteps` of source bugs
+This mode was removed because comments on autobug-style bugs get ignored — owners already filter them out. Use `enrich-1to1` (creates a tracked new bug) or `update-source` (modifies the source itself) instead.
 
 ---
 
