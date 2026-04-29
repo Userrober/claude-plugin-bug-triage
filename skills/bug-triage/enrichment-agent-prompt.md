@@ -88,15 +88,32 @@ Mandatory context dig (run this BEFORE classifying as NO-SIGNAL):
   5. Recent commits touching the suspected area (code_history with the
      feature name, last 90 days). A recent commit may already address it
      or reveal the responsible owner.
+  6. Assignee's recent PRs/commits (code_history author=<assignee alias>,
+     last ~15). Two strong signals to read off:
+       - Are they actively working on this area? → they own it, route
+         confidence high.
+       - Are ALL their recent PRs in a different surface (e.g. all web,
+         while bug is mobile)? → bug may be MIS-ROUTED, or the area has
+         no owner. Surface this in TL;DR.
+  7. Creator/Reporter's recent PRs + other bugs they filed (code_history
+     author=<creator>, search_workitem created-by). Tells you:
+       - Is creator a domain expert (their bug carries weight) or filing
+         out of their lane (likely a drive-by report)?
+       - Did they file sibling bugs in the same batch? → cluster signal.
+  8. Bug ID / title cited in PR description or commit message
+     (code_history query="<bug-id>" or distinctive title phrase). If a PR
+     references this bug, the fix may already be in flight — check its
+     state before recommending more work.
 
-If steps 1-5 produced ANY substantive finding (IcM has detail / related
+If steps 1-8 produced ANY substantive finding (IcM has detail / related
 bug has root cause / wiki explains the architecture / code search hits a
-specific gate), you are INVESTIGABLE — write a real diagnosis. Do not
-default to NO-SIGNAL just because the bug body is one sentence.
+specific gate / assignee or creator history reveals ownership or routing
+signal / a PR already references the bug), you are INVESTIGABLE — write
+a real diagnosis. Do not default to NO-SIGNAL just because the bug body
+is one sentence.
 
-If steps 1-5 all returned nothing useful (no IcM detail, no related work,
-no wiki, no code hits, no commits), THEN classify as NO-SIGNAL and use
-the NO-REPRO template.
+If steps 1-8 all returned nothing useful, THEN classify as NO-SIGNAL and
+use the NO-REPRO template.
 
 For INVESTIGABLE and REPRODUCIBLE: write a real diagnosis using the
 standard Phase 5 skeleton. Mark each anchor honestly as either:
