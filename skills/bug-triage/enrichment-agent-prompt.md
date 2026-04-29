@@ -278,18 +278,29 @@ skeleton (keep it scannable, not prose):
 
   <h2>How to repro</h2>
   <p><i>Owner's #1 question is "how do I reproduce this". Answer it
-  immediately, even if the source bug had a stack — owners want concrete
-  steps, not just a throw site.</i></p>
+  using what you learned from the 8-step Mandatory Context Dig — the
+  source bug almost never gives you a usable repro on its own. Your job
+  here is to RECONSTRUCT the repro from code search, related bugs,
+  recent PRs, wiki, and the area's known patterns.</i></p>
   <ol>
-    <li>{precondition — env / tenant / flight / theme / role}</li>
-    <li>{exact navigation — URL or click path}</li>
-    <li>{trigger action — what to do that makes the bug appear}</li>
-    <li>{what to observe — expected vs actual; include screenshot reference if source has one}</li>
+    <li>{precondition — env / tenant / flight / theme / role} <b>[✅|⚠️|❓]</b></li>
+    <li>{exact navigation — URL or click path} <b>[✅|⚠️|❓]</b></li>
+    <li>{trigger action — what to do that makes the bug appear} <b>[✅|⚠️|❓]</b></li>
+    <li>{what to observe — expected vs actual; reference screenshot if source has one} <b>[✅|⚠️|❓]</b></li>
   </ol>
-  <p>If the source bug only has a screenshot, describe what the screenshot
-  shows here in words AND link the attachment. If repro requires data the
-  source didn't include (specific UA / tenant / flight), say so explicitly:
-  <i>"need: UA string, tenant ring"</i> — don't fabricate steps.</p>
+  <p><i>Confidence legend (REQUIRED on every step):
+  ✅ verified by dig (cite source: PR #N, wiki page, sibling bug #M, code at file:line)
+  · ⚠️ inferred from area knowledge (say what made you infer it)
+  · ❓ owner needs to confirm (say what's missing and why dig didn't find it)</i></p>
+  <p><b>Forbidden</b>: writing all 4 steps as ❓ without trying. If every
+  step is ❓, you skipped the dig — go back to Phase 1.5 step 3-5 and
+  search wiki / code / commits for the feature name. The screenshot, the
+  area path, the tag, the assignee's recent PRs all give you starting
+  points. A repro that says "open page, see bug" is worthless; a repro
+  that says "1. enable flight 61852 ✅ (per wiki ThemesV2 rollout) 2.
+  navigate to /sites/X/banner ⚠️ (inferred from area=Jimu) 3. switch
+  theme to non-contrast ✅ (verbatim from title) 4. observe banner text
+  invisible ✅ (per attached screenshot)" is what owners want.</p>
 
   <h2>Failure signature</h2>
   <table border='1' cellpadding='6' cellspacing='0'>
