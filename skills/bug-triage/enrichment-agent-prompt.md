@@ -46,6 +46,21 @@ From the source, harvest these specific signals (NOT a summary — the raw artif
 
 If a field is empty, write "—" (dash). Do not invent.
 
+── HONESTY GATE (read before Phase 2) ───────────────────────────────
+
+Before going further, classify the source bug's evidence level:
+
+  • REPRODUCIBLE — has stack trace, error string, UA, build link, OR
+    screenshots that pin down the surface that's wrong.
+  • SPECULATIVE  — none of the above. Symptom is one sentence ("doesn't
+    work in X", "shows wrong color", "need to reproduce").
+
+If SPECULATIVE: you MUST NOT write "Hypotheses", "Root cause", or
+"The bug is in <file>". You may only list "Possible starting points
+(UNVERIFIED)" with the explicit caveat that the linkage to the symptom
+is unproven. The Phase 5 HTML skeleton has a separate template for this
+case — use it instead of the standard one.
+
 ═══════════════════════════════════════════════════════════════════════
 PHASE 2 — CODE ANCHOR (this is the highest-value enrichment)
 ═══════════════════════════════════════════════════════════════════════
@@ -68,6 +83,16 @@ Budget: 3 targeted searches max. Stop early if you get a clear hit.
 
 If all three searches return nothing, write `no code anchor found — needs manual
 investigation` and move on. DO NOT fabricate paths or guess.
+
+IMPORTANT — distinguish anchor from hypothesis:
+  • An ANCHOR is a file:line that you have evidence connects to the bug
+    (it appears in the stack trace, contains the literal error string,
+    is the throw site, etc.). Anchors are facts.
+  • A HYPOTHESIS is a guess about what code MIGHT be involved based on
+    keyword overlap with the symptom. Hypotheses are speculation.
+  • If the source bug has no stack and no error string, you have ZERO
+    anchors — only candidate starting points. Label them as such.
+  • Never present a hypothesis as if it were an anchor.
 
 ═══════════════════════════════════════════════════════════════════════
 PHASE 3 — DEDUP / CLUSTER SIGNAL (find what owner can't easily find)
@@ -134,7 +159,43 @@ Pick ONE cluster_tag. Format: `Cluster<Letter>-<ShortName>`.
 PHASE 5 — WRITE THE ENRICHED BUG (HTML, not markdown)
 ═══════════════════════════════════════════════════════════════════════
 
-Build the HTML body using EXACTLY this skeleton (keep it scannable, not prose):
+If you classified the bug as SPECULATIVE in the Honesty Gate, use THIS
+skeleton instead of the standard one — and STOP HERE for the body:
+
+  <h2>TL;DR</h2>
+  <p><b>Recommended action:</b> NEEDS-REPRO (🟢 just for repro+triage)<br/>
+  <b>Source bug:</b> <a href="{SOURCE_URL}">#{SOURCE_BUG_ID}</a></p>
+
+  <h2>Symptom (verbatim from source)</h2>
+  <blockquote>"{quote the source bug's repro/description verbatim}"</blockquote>
+
+  <h2>Status: NO REPRO YET</h2>
+  <p>The source bug has no stack trace, no UA, no screenshots, no telemetry
+  pointer. Without a repro we don't know which surface is wrong, which
+  platform/browser, or which code path is involved.</p>
+
+  <h2>Repro plan (do this first)</h2>
+  <ol>
+    <li>{concrete step to set up the precondition}</li>
+    <li>{concrete step to trigger the symptom}</li>
+    <li>{concrete step to capture diagnostic data — UA, console, network}</li>
+    <li>{diff against working case if applicable}</li>
+  </ol>
+
+  <h2>Possible starting points (UNVERIFIED)</h2>
+  <p><i>Only relevant if the repro shows the bug is in this surface.</i></p>
+  <ul>
+    <li>{anchor 1 with one-line description of why it MIGHT be relevant}</li>
+    <li>{anchor 2 — same rule}</li>
+  </ul>
+  <p>These are candidate code to look at after the repro narrows scope —
+  not a diagnosis. The fix may be in an entirely different repo / layer.</p>
+
+  <h2>Dedup check (verified)</h2>
+  <ul>{list of related/parent bugs WITH their states — only verified facts}</ul>
+
+Otherwise (REPRODUCIBLE bugs), build the HTML body using EXACTLY this
+skeleton (keep it scannable, not prose):
 
   <h2>TL;DR</h2>
   <p><b>Recommended action:</b> {ACTION} ({EFFORT}){if DEDUP/CLOSE-FIXED: into <a href="...">#N</a>}<br/>
