@@ -70,7 +70,8 @@ options:
   1. 本地报告 (local markdown only) — 默认推荐，不动 ADO
   2. 创建新 ADO bug (enriched) — 写一个/多个新 bug，源 bug 不变
   3. 直接更新源 bug 字段 — 改 severity/state/assignee/repro，不创建新 bug
-  4. 啥也不做，只看摘要 — exit
+  4. Append 到源 bug 的 ReproSteps — 不动其他字段，把 enrichment 加到 repro 末尾
+  5. 啥也不做，只看摘要 — exit
 ```
 
 **Question 2 — ONLY if user picked "创建新 ADO bug" or "直接更新源 bug" in Q1, ask:**
@@ -190,6 +191,7 @@ Multiple output modes available — see [ado-output.md](./ado-output.md) for ful
 - **meta-bug mode** — create one new bug summarizing the cluster, link sources as `Related`
 - **enrich-1to1 mode** — N source bugs → N enriched bugs, one sub-agent per source (see [enrichment-agent-prompt.md](./enrichment-agent-prompt.md) — this is the highest-value mode and the prompt is the asset)
 - **update-source mode** — modify the source bug in place (severity, state, assignee, repro)
+- **append-repro mode** — APPEND the enrichment HTML to the source bug's `Microsoft.VSTS.TCM.ReproSteps`, never overwrite. Always read the current value first, then write `{old}<hr/><h2>📌 Enrichment by bug-triage skill ({YYYY-MM-DD})</h2>{new}`. Touch no other field. Best when owner wants the enrichment surfaced on the original bug without creating a new tracked item.
 
 (Comment mode was removed in v0.3.0 — owners ignore comments on autobugs; create a new tracked bug or update the source instead.)
 

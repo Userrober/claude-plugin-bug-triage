@@ -276,6 +276,21 @@ skeleton (keep it scannable, not prose):
   <b>Source bug:</b> <a href="{SOURCE_URL}">#{SOURCE_BUG_ID}</a> — {one-line title}</p>
   <p><i>Effort legend: 🟢 &lt;1 day · 🟡 1–3 days · 🔴 needs design / cross-team</i></p>
 
+  <h2>How to repro</h2>
+  <p><i>Owner's #1 question is "how do I reproduce this". Answer it
+  immediately, even if the source bug had a stack — owners want concrete
+  steps, not just a throw site.</i></p>
+  <ol>
+    <li>{precondition — env / tenant / flight / theme / role}</li>
+    <li>{exact navigation — URL or click path}</li>
+    <li>{trigger action — what to do that makes the bug appear}</li>
+    <li>{what to observe — expected vs actual; include screenshot reference if source has one}</li>
+  </ol>
+  <p>If the source bug only has a screenshot, describe what the screenshot
+  shows here in words AND link the attachment. If repro requires data the
+  source didn't include (specific UA / tenant / flight), say so explicitly:
+  <i>"need: UA string, tenant ring"</i> — don't fabricate steps.</p>
+
   <h2>Failure signature</h2>
   <table border='1' cellpadding='6' cellspacing='0'>
     <tr><td><b>Test</b></td><td>{test name + framework}</td></tr>
