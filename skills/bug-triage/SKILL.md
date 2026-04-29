@@ -217,6 +217,7 @@ Sub-agents can't see each other, so two unrelated bugs both not-matching Cluster
 ## Anti-patterns (don't do these)
 
 - ❌ **Don't act on an ADO bug without guided intake.** Even if the user asked you to "triage" or "handle" or "dedup" a bug, ALWAYS pause and ask via `AskUserQuestion` what specific action they want — `dedup` / `comment` / `update` / `enrich` / `nothing`. The user's natural-language request is intent, not authorization.
+- ❌ **Don't fabricate a causal chain between real code anchors and the bug.** Finding `isCurrentThemeV2()` in the repo is real. Claiming "the mobile theme bug is caused by `isCurrentThemeV2()` not being gated for mobile audience" — when the source bug says only "need to reproduce" — is a hallucinated diagnosis dressed in real file paths. Every individual anchor is verifiable, but the *story linking them to the symptom* is fiction. If the source bug has no stack, no UA, no screenshots, no telemetry pointer, then you have NO evidence for any specific cause; mark anchors as "candidate code to look at after repro", never as "the bug is here". The enrichment's job is to surface evidence, not invent it.
 - ❌ Don't enrich bugs that are already high-quality with redundant info — focus on what's missing (usually code anchor)
 - ❌ Don't auto-write to ADO without explicit per-bug confirmation
 - ❌ Don't generate essay-style reports — owners want dashboards, not narratives
