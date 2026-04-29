@@ -1,6 +1,6 @@
 {
   "name": "bug-triage",
   "description": "Batch triage ADO bugs for a feature owner — cluster, enrich with code anchors, and generate actionable plans. Defaults to local-only output; opt-in to write back to ADO.",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "homepage": "https://github.com/Userrober/claude-plugin-bug-triage"
 }

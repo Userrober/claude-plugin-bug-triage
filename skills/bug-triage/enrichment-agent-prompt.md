@@ -48,18 +48,65 @@ If a field is empty, write "—" (dash). Do not invent.
 
 ── HONESTY GATE (read before Phase 2) ───────────────────────────────
 
-Before going further, classify the source bug's evidence level:
+Before going further, classify the source bug's evidence level. There
+are THREE buckets, not two. Default to the middle bucket — most bugs
+belong there.
 
   • REPRODUCIBLE — has stack trace, error string, UA, build link, OR
-    screenshots that pin down the surface that's wrong.
-  • SPECULATIVE  — none of the above. Symptom is one sentence ("doesn't
-    work in X", "shows wrong color", "need to reproduce").
+    screenshots that pin down the failing surface. Diagnosis is direct.
 
-If SPECULATIVE: you MUST NOT write "Hypotheses", "Root cause", or
-"The bug is in <file>". You may only list "Possible starting points
-(UNVERIFIED)" with the explicit caveat that the linkage to the symptom
-is unproven. The Phase 5 HTML skeleton has a separate template for this
-case — use it instead of the standard one.
+  • INVESTIGABLE — no stack/UA/screenshot, BUT one or more of:
+      - linked IcM with content
+      - linked PR / commit
+      - related or parent work items with diagnoses
+      - feature/area tag that maps to a known subsystem (ThemesV2,
+        BrandCenter, Sharing, etc.)
+      - quoted UI string, error code, regex, resx key, identifier
+      - reporter is a known engineer who can be pinged
+    This is the COMMON case. You should write a real diagnosis here,
+    grounded in what you find by digging into IcM, related bugs, code,
+    commits, wiki — but mark inferences as inferences (see Phase 2).
+
+  • NO-SIGNAL — symptom is one short sentence AND every dig in the
+    "Mandatory context dig" below returned nothing useful. Only after
+    you've exhausted the dig may you fall back to the NO-REPRO template.
+    Estimate: <10% of bugs. If you find yourself reaching for this
+    bucket more than 1 in 10, you're under-investigating.
+
+Mandatory context dig (run this BEFORE classifying as NO-SIGNAL):
+  1. If the bug links an IcM, fetch the IcM summary — IcMs almost always
+     contain the customer's actual repro and diagnosis the autobug
+     stripped out.
+  2. Read EVERY related and parent work item (wit_get_work_items_batch).
+     States, titles, ReproSteps. Sibling bugs in the same cluster often
+     contain root-cause analysis that applies here.
+  3. Search wiki for the feature/tag (e.g. "ThemesV2 mobile", "BrandCenter
+     rollout"). Architecture docs and rollout plans explain why a behavior
+     differs across hosts/audiences.
+  4. Code-search the most specific identifier from the title or tag (NOT
+     stop words). 2-3 queries with bluebird `search_code`.
+  5. Recent commits touching the suspected area (code_history with the
+     feature name, last 90 days). A recent commit may already address it
+     or reveal the responsible owner.
+
+If steps 1-5 produced ANY substantive finding (IcM has detail / related
+bug has root cause / wiki explains the architecture / code search hits a
+specific gate), you are INVESTIGABLE — write a real diagnosis. Do not
+default to NO-SIGNAL just because the bug body is one sentence.
+
+If steps 1-5 all returned nothing useful (no IcM detail, no related work,
+no wiki, no code hits, no commits), THEN classify as NO-SIGNAL and use
+the NO-REPRO template.
+
+For INVESTIGABLE and REPRODUCIBLE: write a real diagnosis using the
+standard Phase 5 skeleton. Mark each anchor honestly as either:
+  - VERIFIED (came from stack / error string / IcM / verified linked PR)
+  - INFERRED (came from feature-tag mapping / code search / sibling bug
+    pattern matching) — these are still useful, but say so
+
+Inferences are allowed and expected — fabricated certainty is not. Words
+like "likely", "appears to", "suggests" are honest. "The bug is in X"
+without a stack pointing to X is fabricated certainty.
 
 ═══════════════════════════════════════════════════════════════════════
 PHASE 2 — CODE ANCHOR (this is the highest-value enrichment)
@@ -85,14 +132,19 @@ If all three searches return nothing, write `no code anchor found — needs manu
 investigation` and move on. DO NOT fabricate paths or guess.
 
 IMPORTANT — distinguish anchor from hypothesis:
-  • An ANCHOR is a file:line that you have evidence connects to the bug
-    (it appears in the stack trace, contains the literal error string,
-    is the throw site, etc.). Anchors are facts.
-  • A HYPOTHESIS is a guess about what code MIGHT be involved based on
-    keyword overlap with the symptom. Hypotheses are speculation.
-  • If the source bug has no stack and no error string, you have ZERO
-    anchors — only candidate starting points. Label them as such.
-  • Never present a hypothesis as if it were an anchor.
+  • A VERIFIED anchor is a file:line that you have direct evidence for
+    (stack trace, error string match, throw site, IcM-confirmed location,
+    PR diff). State the evidence inline.
+  • An INFERRED anchor is a file:line you reached by following the
+    feature tag, sibling-bug pattern, or code search for related
+    identifiers. Useful, but say "inferred from <evidence>" — never
+    present an inference as a stack-confirmed fact.
+  • Hedging words ("likely", "appears to", "suggests") are required
+    when writing inferences. Removing them turns honest investigation
+    into fabricated certainty.
+  • If the source bug has no stack and no error string AND your
+    context dig found nothing usable, you have ZERO anchors —
+    label them as candidates and use the NO-REPRO template.
 
 ═══════════════════════════════════════════════════════════════════════
 PHASE 3 — DEDUP / CLUSTER SIGNAL (find what owner can't easily find)
@@ -159,8 +211,11 @@ Pick ONE cluster_tag. Format: `Cluster<Letter>-<ShortName>`.
 PHASE 5 — WRITE THE ENRICHED BUG (HTML, not markdown)
 ═══════════════════════════════════════════════════════════════════════
 
-If you classified the bug as SPECULATIVE in the Honesty Gate, use THIS
-skeleton instead of the standard one — and STOP HERE for the body:
+If you classified the bug as NO-SIGNAL in the Honesty Gate (i.e. the
+mandatory context dig produced nothing), use THIS skeleton instead of
+the standard one — and STOP HERE for the body. For REPRODUCIBLE and
+INVESTIGABLE bugs, skip this section and use the standard skeleton
+below.
 
   <h2>TL;DR</h2>
   <p><b>Recommended action:</b> NEEDS-REPRO (🟢 just for repro+triage)<br/>
