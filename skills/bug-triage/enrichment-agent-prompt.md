@@ -282,25 +282,32 @@ skeleton (keep it scannable, not prose):
   source bug almost never gives you a usable repro on its own. Your job
   here is to RECONSTRUCT the repro from code search, related bugs,
   recent PRs, wiki, and the area's known patterns.</i></p>
+  <p><b>Repro steps:</b></p>
   <ol>
-    <li>{precondition — env / tenant / flight / theme / role} <b>[✅|⚠️|❓]</b></li>
+    <li>{precondition — env / tenant / flight / theme / role / KS} <b>[✅|⚠️|❓]</b></li>
     <li>{exact navigation — URL or click path} <b>[✅|⚠️|❓]</b></li>
     <li>{trigger action — what to do that makes the bug appear} <b>[✅|⚠️|❓]</b></li>
-    <li>{what to observe — expected vs actual; reference screenshot if source has one} <b>[✅|⚠️|❓]</b></li>
   </ol>
+  <p><b>Expected behavior:</b> {what SHOULD happen — the correct UI / data / state. One sentence.}</p>
+  <p><b>Actual behavior:</b> {what DOES happen — the bug. One sentence. Reference screenshot if source has one.}</p>
   <p><i>Confidence legend (REQUIRED on every step):
   ✅ verified by dig (cite source: PR #N, wiki page, sibling bug #M, code at file:line)
   · ⚠️ inferred from area knowledge (say what made you infer it)
   · ❓ owner needs to confirm (say what's missing and why dig didn't find it)</i></p>
-  <p><b>Forbidden</b>: writing all 4 steps as ❓ without trying. If every
+  <p><i>Why this 3-block format: "Steps" tells the owner what to DO,
+  "Expected" tells them what to look for as the pass case, "Actual" tells
+  them what failure looks like so they know they reproduced the right
+  bug. Without Expected/Actual, "I followed the steps and saw something
+  weird" gets reported as a different bug.</i></p>
+  <p><b>Forbidden</b>: writing all steps as ❓ without trying. If every
   step is ❓, you skipped the dig — go back to Phase 1.5 step 3-5 and
-  search wiki / code / commits for the feature name. The screenshot, the
-  area path, the tag, the assignee's recent PRs all give you starting
-  points. A repro that says "open page, see bug" is worthless; a repro
-  that says "1. enable flight 61852 ✅ (per wiki ThemesV2 rollout) 2.
-  navigate to /sites/X/banner ⚠️ (inferred from area=Jimu) 3. switch
-  theme to non-contrast ✅ (verbatim from title) 4. observe banner text
-  invisible ✅ (per attached screenshot)" is what owners want.</p>
+  search wiki / code / commits for the feature name.</p>
+  <p><b>Kill Switch / flight format</b>: KS values are GUIDs (e.g.
+  <code>ad12cf3a-1e2a-4b5c-9c8d-7e0f1a2b3c4d</code>), NEVER short hex
+  like <code>d99f1b51</code>. Flights are numeric (e.g.
+  <code>61852</code>). If you cannot find the actual GUID in code or
+  wiki, write <code>KS GUID: — (need: lookup in KillSwitch table)</code>
+  — do NOT make one up and do NOT use a commit SHA prefix as the KS ID.</p>
 
   <h2>Failure signature</h2>
   <table border='1' cellpadding='6' cellspacing='0'>

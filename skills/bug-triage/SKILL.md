@@ -226,6 +226,7 @@ Sub-agents can't see each other, so two unrelated bugs both not-matching Cluster
 - ❌ Don't generate essay-style reports — owners want dashboards, not narratives
 - ❌ Don't cluster by ID order — cluster by semantic relationship
 - ❌ Don't make up code anchors when search returns nothing — say "no anchor found"
+- ❌ **Don't use short hex (commit SHA prefixes) as Kill Switch IDs.** Real KS values are GUIDs (e.g. `ad12cf3a-1e2a-4b5c-9c8d-7e0f1a2b3c4d`). Flights are numeric. If you can't find the GUID in code/wiki, write `— (need: lookup in KillSwitch table)`. Do NOT fabricate.
 - ❌ **Don't dump a polished analysis as a final answer when there's a follow-up action implied.** "Triage bug X" is a request that ends in an ASK, not a markdown report. Show summary briefly, then ASK.
 
 ## Reference
